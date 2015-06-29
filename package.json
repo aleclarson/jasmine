@@ -1,11 +1,14 @@
 {
   "name": "jasmine",
   "description": "DOM-less simple JavaScript testing framework",
-  "version": "2.3.4",
+  "version": "2.3.5",
   "main": "./index",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/aleclarson/jasmine.git"
+  },
+  "dependencies": {
+    "q": "aleclarson/q#1.0.0"
   }
 }

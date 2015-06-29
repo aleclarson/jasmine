@@ -20,6 +20,9 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
+var Q = require("q");
+
 var getJasmineRequireObj = (function (jasmineGlobal) {
   var jasmineRequire;
 
@@ -347,6 +350,21 @@ getJasmineRequireObj().Spec = function(j$) {
       return;
     }
 
+    var fn = this.queueableFn.fn;
+
+    // This supports Promise-like objects being returned by each spec.
+    this.queueableFn.fn = function(onComplete) {
+      var result = fn.call(self);
+      if (result && typeof result.then === "function") {
+        Q.timeout(result, 500)
+         .fail(self.onException.bind(self))
+         .always(onComplete)
+         .done();
+      } else if (fn.length === 0) {
+        onComplete();
+      }
+    };
+
     var fns = this.beforeAndAfterFns();
     var allFns = fns.befores.concat(this.queueableFn).concat(fns.afters);
 
@@ -576,11 +594,9 @@ getJasmineRequireObj().Env = function(j$) {
     // TODO: we may just be able to pass in the fn instead of wrapping here
     var buildExpectationResult = j$.buildExpectationResult,
         exceptionFormatter = new j$.ExceptionFormatter(),
-        expectationResultFactory = function(attrs) {
-          attrs.messageFormatter = exceptionFormatter.message;
-          attrs.stackFormatter = exceptionFormatter.stack;
-
-          return buildExpectationResult(attrs);
+        expectationResultFactory = function(options) {
+          options.messageFormatter = exceptionFormatter.message;
+          return buildExpectationResult(options);
         };
 
     // TODO: fix this naming, and here's where the value comes in
@@ -641,7 +657,13 @@ getJasmineRequireObj().Env = function(j$) {
       return topSuite;
     };
 
-    this.execute = function(runnablesToRun) {
+    this.execute = function(runnablesToRun, onComplete) {
+
+      if (typeof runnablesToRun === "function") {
+        onComplete = runnablesToRun;
+        runnablesToRun = void 0;
+      }
+
       if(!runnablesToRun) {
         if (focusedRunnables.length) {
           runnablesToRun = focusedRunnables;
@@ -649,6 +671,7 @@ getJasmineRequireObj().Env = function(j$) {
           runnablesToRun = [topSuite.id];
         }
       }
+
       var processor = new j$.TreeProcessor({
         tree: topSuite,
         runnableIds: runnablesToRun,
@@ -675,7 +698,12 @@ getJasmineRequireObj().Env = function(j$) {
         totalSpecsDefined: totalSpecsDefined
       });
 
-      processor.execute(reporter.jasmineDone);
+      processor.execute(function () {
+        reporter.jasmineDone();
+        if (typeof onComplete === "function") {
+          onComplete();
+        }
+      });
     };
 
     this.addReporter = function(reporterToAdd) {
@@ -1337,10 +1365,6 @@ getJasmineRequireObj().ExceptionFormatter = function() {
 
       return message;
     };
-
-    this.stack = function(error) {
-      return error ? error.stack : null;
-    };
   }
 
   return ExceptionFormatter;
@@ -1443,13 +1467,17 @@ getJasmineRequireObj().Expectation = function() {
 //TODO: expectation result may make more sense as a presentation of an expectation.
 getJasmineRequireObj().buildExpectationResult = function() {
   function buildExpectationResult(options) {
-    var messageFormatter = options.messageFormatter || function() {},
-      stackFormatter = options.stackFormatter || function() {};
+    
+    var messageFormatter = options.messageFormatter || function() {};
+
+    var message = getMessage();
+
+    options.error = options.error || Error(message);
 
     var result = {
+      error: options.error,
       matcherName: options.matcherName,
-      message: message(),
-      stack: stack(),
+      message: message,
       passed: options.passed
     };
 
@@ -1460,7 +1488,7 @@ getJasmineRequireObj().buildExpectationResult = function() {
 
     return result;
 
-    function message() {
+    function getMessage() {
       if (options.passed) {
         return 'Passed.';
       } else if (options.message) {
@@ -1469,22 +1497,6 @@ getJasmineRequireObj().buildExpectationResult = function() {
         return messageFormatter(options.error);
       }
       return '';
-    }
-
-    function stack() {
-      if (options.passed) {
-        return '';
-      }
-
-      var error = options.error;
-      if (!error) {
-        try {
-          throw new Error(message());
-        } catch (e) {
-          error = e;
-        }
-      }
-      return stackFormatter(error);
     }
   }
 
@@ -3300,5 +3312,5 @@ getJasmineRequireObj().interface = function(jasmine, env) {
 };
 
 getJasmineRequireObj().version = function() {
-  return '2.3.4';
+  return '2.3.5';
 };
