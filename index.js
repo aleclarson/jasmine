@@ -352,18 +352,41 @@ getJasmineRequireObj().Spec = function(j$) {
 
     var fn = this.queueableFn.fn;
 
-    // This supports Promise-like objects being returned by each spec.
-    this.queueableFn.fn = function(onComplete) {
-      var result = fn.call(self);
-      if (result && typeof result.then === "function") {
-        Q.timeout(result, 500)
-         .fail(self.onException.bind(self))
-         .always(onComplete)
-         .done();
-      } else if (fn.length === 0) {
-        onComplete();
-      }
-    };
+    if (this.bench) {
+      this.queueableFn.fn = function(onComplete) {
+        var cycles = [];
+        fn.call(self.bench);
+        self.bench.on("cycle", function(e) {
+          cycles.push(String(e.target));
+        }).on("complete", function() {
+          log.plusIndent(2);
+          cycles.forEach(function(cycle) {
+            log.gray(cycle);
+            log.moat(1);
+          });
+          log.popIndent();
+          onComplete();
+        }).run({
+          async: true
+        });
+        return;
+      };
+    }
+
+    else {
+      // This supports Promise-like objects being returned by each spec.
+      this.queueableFn.fn = function(onComplete) {
+        var result = fn.call(self, onComplete);
+        if (result && result instanceof Q.Promise) {
+          Q.timeout(result, 1000)
+           .fail(self.onException.bind(self))
+           .always(onComplete)
+           .done();
+        } else if (fn.length === 0) {
+          onComplete();
+        }
+      };
+    }
 
     var fns = this.beforeAndAfterFns();
     var allFns = fns.befores.concat(this.queueableFn).concat(fns.afters);
@@ -846,6 +869,20 @@ getJasmineRequireObj().Env = function(j$) {
         defaultResourcesForRunnable(spec.id, suite.id);
         reporter.specStarted(spec.result);
       }
+    };
+
+    this.bench = function(description, fn) {
+      if (typeof Benchmark === 'undefined') {
+        return;
+      }
+      if (arguments.length === 1) {
+        fn = description;
+        description = '';
+      }
+      description = log.color.cyan('[bench] ') + description;
+      var spec = this.it(description, fn, 120000);
+      spec.bench = new Benchmark.Suite;
+      return spec;
     };
 
     this.it = function(description, fn, timeout) {
@@ -1467,7 +1504,7 @@ getJasmineRequireObj().Expectation = function() {
 //TODO: expectation result may make more sense as a presentation of an expectation.
 getJasmineRequireObj().buildExpectationResult = function() {
   function buildExpectationResult(options) {
-    
+
     var messageFormatter = options.messageFormatter || function() {};
 
     var message = getMessage();
@@ -3243,6 +3280,10 @@ getJasmineRequireObj().interface = function(jasmine, env) {
 
     fdescribe: function(description, specDefinitions) {
       return env.fdescribe(description, specDefinitions);
+    },
+
+    bench: function() {
+      return env.bench.apply(env, arguments);
     },
 
     it: function() {
