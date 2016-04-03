@@ -495,7 +495,7 @@ getJasmineRequireObj().Env = function(j$) {
     var self = this;
     var global = options.global || j$.getGlobal();
 
-    var totalSpecsDefined = 0;
+    var totalSpecsExecuted = 0;
 
     var catchExceptions = true;
 
@@ -717,12 +717,12 @@ getJasmineRequireObj().Env = function(j$) {
         throw new Error('Invalid order: would cause a beforeAll or afterAll to be run multiple times');
       }
 
-      reporter.jasmineStarted({
-        totalSpecsDefined: totalSpecsDefined
-      });
+      reporter.jasmineStarted();
 
       processor.execute(function () {
-        reporter.jasmineDone();
+        reporter.jasmineDone({
+          totalSpecsExecuted: totalSpecsExecuted,
+        });
         if (typeof onComplete === "function") {
           onComplete();
         }
@@ -829,7 +829,6 @@ getJasmineRequireObj().Env = function(j$) {
     }
 
     var specFactory = function(description, fn, suite, timeout) {
-      totalSpecsDefined++;
       var spec = new j$.Spec({
         id: getNextSpecId(),
         beforeAndAfterFns: beforeAndAfterFns(suite),
@@ -865,6 +864,7 @@ getJasmineRequireObj().Env = function(j$) {
       }
 
       function specStarted(spec) {
+        totalSpecsExecuted += 1;
         currentSpec = spec;
         defaultResourcesForRunnable(spec.id, suite.id);
         reporter.specStarted(spec.result);
