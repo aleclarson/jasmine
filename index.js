@@ -343,7 +343,7 @@ getJasmineRequireObj().Spec = function(j$) {
   Spec.prototype.execute = function(onComplete, enabled) {
     var self = this;
 
-    if (!this.isExecutable() || this.markedPending || enabled === false) {
+    if (enabled === false || !this.isExecutable() || this.markedPending) {
       complete(enabled);
       return;
     }
@@ -2284,7 +2284,7 @@ getJasmineRequireObj().TreeProcessor = function() {
 
       if (!node.children) {
         stats[node.id] = {
-          executable: parentEnabled && node.isExecutable(),
+          executable: parentEnabled,
           segments: [{
             index: 0,
             owner: node,
@@ -2412,7 +2412,9 @@ getJasmineRequireObj().TreeProcessor = function() {
         };
       } else {
         return {
-          fn: function(done) { node.execute(done, stats[node.id].executable); }
+          fn: function(done) {
+            node.execute(done, stats[node.id].executable);
+          }
         };
       }
     }
