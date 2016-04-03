@@ -343,12 +343,12 @@ getJasmineRequireObj().Spec = function(j$) {
   Spec.prototype.execute = function(onComplete, enabled) {
     var self = this;
 
-    this.onStart(this);
-
     if (!this.isExecutable() || this.markedPending || enabled === false) {
       complete(enabled);
       return;
     }
+
+    this.onStart(this);
 
     var fn = this.queueableFn.fn;
 
