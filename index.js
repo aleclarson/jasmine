@@ -872,7 +872,7 @@ getJasmineRequireObj().Env = function(j$) {
     };
 
     this.bench = function(description, fn) {
-      if (typeof Benchmark === 'undefined') {
+      if (global.Benchmark === null) {
         return;
       }
       if (arguments.length === 1) {
