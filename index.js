@@ -2389,6 +2389,12 @@ getJasmineRequireObj().TreeProcessor = function() {
       if (node.children) {
         return {
           fn: function(done) {
+
+            if (!stats[node.id].executable) {
+              done();
+              return;
+            }
+
             nodeStart(node);
 
             queueRunnerFactory({
