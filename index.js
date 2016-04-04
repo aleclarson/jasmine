@@ -1426,7 +1426,8 @@ getJasmineRequireObj().Expectation = function() {
     return function() {
       var args = Array.prototype.slice.call(arguments, 0),
         expected = args.slice(0),
-        message = '';
+        message = '',
+        error = null;
 
       args.unshift(this.actual);
 
@@ -1436,6 +1437,9 @@ getJasmineRequireObj().Expectation = function() {
       function defaultNegativeCompare() {
         var result = matcher.compare.apply(null, args);
         result.pass = !result.pass;
+        if (result.pass) {
+          result.error = null;
+        }
         return result;
       }
 
@@ -1446,16 +1450,16 @@ getJasmineRequireObj().Expectation = function() {
       var result = matcherCompare.apply(null, args);
 
       if (!result.pass) {
-        if (!result.message) {
+        if (result.error) {
+          error = result.error;
+        } else if (!result.message) {
           args.unshift(this.isNot);
           args.unshift(name);
           message = this.util.buildFailureMessage.apply(null, args);
+        } else if (Object.prototype.toString.apply(result.message) === '[object Function]') {
+          message = result.message();
         } else {
-          if (Object.prototype.toString.apply(result.message) === '[object Function]') {
-            message = result.message();
-          } else {
-            message = result.message;
-          }
+          message = result.message;
         }
       }
 
@@ -1470,6 +1474,7 @@ getJasmineRequireObj().Expectation = function() {
           matcherName: name,
           passed: result.pass,
           message: message,
+          error: error,
           actual: this.actual,
           expected: expected // TODO: this may need to be arrayified/sliced
         }
@@ -3116,20 +3121,15 @@ getJasmineRequireObj().toThrow = function(j$) {
 
         if (!threw) {
           result.message = 'Expected function to throw an exception.';
-          return result;
-        }
-
-        if (arguments.length == 1) {
+        } else if (arguments.length == 1) {
           result.pass = true;
+          result.error = thrown;
           result.message = function() { return 'Expected function not to throw, but it threw ' + j$.pp(thrown) + '.'; };
-
-          return result;
-        }
-
-        if (util.equals(thrown, expected)) {
+        } else if (util.equals(thrown, expected)) {
           result.pass = true;
           result.message = function() { return 'Expected function not to throw ' + j$.pp(expected) + '.'; };
         } else {
+          result.error = thrown;
           result.message = function() { return 'Expected function to throw ' + j$.pp(expected) + ', but it threw ' +  j$.pp(thrown) + '.'; };
         }
 
