@@ -1427,7 +1427,8 @@ getJasmineRequireObj().Expectation = function() {
       var args = Array.prototype.slice.call(arguments, 0),
         expected = args.slice(0),
         message = '',
-        error = null;
+        error = null,
+        stack = Error().stack.split('\n').slice(3, 13).join('\n');
 
       args.unshift(this.actual);
 
@@ -1452,6 +1453,7 @@ getJasmineRequireObj().Expectation = function() {
       if (!result.pass) {
         if (result.error) {
           error = result.error;
+          stack = null;
         } else if (!result.message) {
           args.unshift(this.isNot);
           args.unshift(name);
@@ -1475,6 +1477,7 @@ getJasmineRequireObj().Expectation = function() {
           passed: result.pass,
           message: message,
           error: error,
+          stack: stack,
           actual: this.actual,
           expected: expected // TODO: this may need to be arrayified/sliced
         }
@@ -1510,17 +1513,20 @@ getJasmineRequireObj().Expectation = function() {
 getJasmineRequireObj().buildExpectationResult = function() {
   function buildExpectationResult(options) {
 
-    var messageFormatter = options.messageFormatter || function() {};
-
-    var message = getMessage();
-
-    options.error = options.error || Error(message);
+    if (options.error) {
+      if (!options.message) {
+        options.message = options.error.message;
+      }
+      if (!options.stack) {
+        options.stack = options.error.stack.split('\n').slice(1, 11).join('\n');
+      }
+    }
 
     var result = {
-      error: options.error,
+      stack: options.stack,
       matcherName: options.matcherName,
-      message: message,
-      passed: options.passed
+      message: getMessage(),
+      passed: options.passed,
     };
 
     if(!result.passed) {
@@ -1535,8 +1541,6 @@ getJasmineRequireObj().buildExpectationResult = function() {
         return 'Passed.';
       } else if (options.message) {
         return options.message;
-      } else if (options.error) {
-        return messageFormatter(options.error);
       }
       return '';
     }
