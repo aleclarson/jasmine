@@ -3121,6 +3121,7 @@ getJasmineRequireObj().toThrow = function(j$) {
         } catch (e) {
           threw = true;
           thrown = e;
+          e.catch && e.catch();
         }
 
         if (!threw) {
@@ -3165,6 +3166,7 @@ getJasmineRequireObj().toThrowError = function(j$) {
         } catch (e) {
           threw = true;
           thrown = e;
+          e.catch && e.catch();
         }
 
         if (!threw) {
