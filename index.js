@@ -21,8 +21,6 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-var Q = require("q");
-
 var getJasmineRequireObj = (function (jasmineGlobal) {
   var jasmineRequire;
 
@@ -370,21 +368,6 @@ getJasmineRequireObj().Spec = function(j$) {
           async: true
         });
         return;
-      };
-    }
-
-    else {
-      // This supports Promise-like objects being returned by each spec.
-      this.queueableFn.fn = function(onComplete) {
-        var result = fn.call(self, onComplete);
-        if (result && result instanceof Q.Promise) {
-          Q.timeout(result, 1000)
-           .fail(self.onException.bind(self))
-           .always(onComplete)
-           .done();
-        } else if (fn.length === 0) {
-          onComplete();
-        }
       };
     }
 
