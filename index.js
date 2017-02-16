@@ -472,6 +472,9 @@ if (typeof window == void 0 && typeof exports == 'object') {
 }
 
 getJasmineRequireObj().Env = function(j$) {
+  var isType = require('isType');
+  var formatType = require('formatType');
+
   function Env(options) {
     options = options || {};
 
@@ -895,6 +898,21 @@ getJasmineRequireObj().Env = function(j$) {
       }
 
       return currentRunnable().expect(actual);
+    };
+
+    this.expectTypes = function(values, types) {
+      var value, type;
+      if (isType(values, Object)) {
+        for (var key in types) {
+          type = types[key];
+          value = values[key];
+          if (!isType(values[key], type)) {
+            fail('Expected \'' + key + '\' to be ' + formatType(type, true) + '!');
+          }
+        }
+      } else {
+        fail('Expected an Object!');
+      }
     };
 
     this.beforeEach = function(beforeEachFunction, timeout) {
@@ -3315,6 +3333,10 @@ getJasmineRequireObj().interface = function(jasmine, env) {
 
     expect: function(actual) {
       return env.expect(actual);
+    },
+
+    expectTypes: function(values, types) {
+      return env.expectTypes(values, types);
     },
 
     pending: function() {

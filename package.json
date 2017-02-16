@@ -7,5 +7,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/aleclarson/jasmine.git"
+  },
+  "dependencies": {
+    "formatType": "aleclarson/formatType#1.0.0",
+    "isType": "aleclarson/isType#1.0.1"
   }
 }
